@@ -32,6 +32,55 @@ def base64_to_png(base64_data, output_path):
         print("Error:", e)
         return None
 
+@app.route("/generate")
+def generate_image():
+	negative_prompt = "character"
+
+	prompt = request.args.get('prompt')
+	uuid = request.args.get('uuid')
+	scene_number = request.args.get('scene_number')
+
+	if not prompt or not negative_prompt:
+		return jsonify({'error': 'Prompt and negative prompt are required'}), 400
+	
+	engine_id = "stable-diffusion-xl-1024-v1-0"
+	api_key = os.getenv('STABILITY_API_KEY')
+	api_host = os.getenv('STABILITY_HOST')
+	
+	headers = {
+		'Authorization': f'Bearer {api_key}',
+		'Content-Type': 'application/json',
+		'Content-Disposition': f'attachment; filename="{uuid}_{scene_number}.png"'
+	}
+	data={
+        "text_prompts": [
+            {
+                "text": prompt,
+				"weight": 1
+            },
+	    	{
+			    "text": negative_prompt,
+			    "weight": -1
+			}
+        ],
+        "cfg_scale": 7,
+        "height": 1024,
+        "width": 1024,
+        "samples": 1,
+        "steps": 30,
+    }
+	response = requests.post(f"{api_host}/v1/generation/{engine_id}/text-to-image", headers=headers, json=data)
+
+	if response.status_code == 200:
+		base64_string = response.json()['artifacts'][0]['base64']
+		output_path = base64_to_png(base64_string, f"{uuid}_{scene_number}.png")
+
+		if output_path:
+			return Response(open(output_path, 'rb').read(), mimetype="image/png")
+		else:
+			return jsonify({'error': 'Failed to generate image'}), 500
+	else:
+		return jsonify({'error': 'Failed to generate image'}), 500
 
 if __name__ == '__main__':
 	app.run()
