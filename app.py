@@ -40,6 +40,8 @@ def generate_image():
 	uuid = request.args.get('uuid')
 	scene_number = request.args.get('scene_number')
 
+	print(prompt, negative_prompt, uuid, scene_number)
+
 	if not prompt or not negative_prompt:
 		return jsonify({'error': 'Prompt and negative prompt are required'}), 400
 	
@@ -63,6 +65,7 @@ def generate_image():
 			    "weight": -1
 			}
         ],
+		"style": "comic-book",
         "cfg_scale": 7,
         "height": 1024,
         "width": 1024,
@@ -76,6 +79,7 @@ def generate_image():
 		output_path = base64_to_png(base64_string, f"{uuid}_{scene_number}.png")
 
 		if output_path:
+			print(output_path)
 			return Response(open(output_path, 'rb').read(), mimetype="image/png")
 		else:
 			return jsonify({'error': 'Failed to generate image'}), 500
@@ -83,4 +87,4 @@ def generate_image():
 		return jsonify({'error': 'Failed to generate image'}), 500
 
 if __name__ == '__main__':
-	app.run()
+	app.run(port=5003)
